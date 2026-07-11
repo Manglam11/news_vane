@@ -10,6 +10,25 @@ services:
       - "5433:5432"
     volumes:
       - newsvane_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U newsvane -d newsvane"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    container_name: newsvane-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Inside the compose network the database answers to its service name on its
+      # own port. My .env still points at localhost:5433 for running the API straight
+      # from PyCharm, and this line overrides it only for the containerised run.
+      DATABASE_URL: postgresql+psycopg://newsvane:newsvane@db:5432/newsvane
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   newsvane_pgdata:
