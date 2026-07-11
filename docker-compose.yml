@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: newsvane-db
+    environment:
+      POSTGRES_USER: newsvane
+      POSTGRES_PASSWORD: newsvane
+      POSTGRES_DB: newsvane
+    ports:
+      - "5433:5432"
+    volumes:
+      - newsvane_pgdata:/var/lib/postgresql/data
+
+volumes:
+  newsvane_pgdata:
