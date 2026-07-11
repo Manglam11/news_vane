@@ -23,7 +23,7 @@ def save(text: str, prediction: dict) -> Prediction:
             score=prediction["score"],
             sentiment=prediction["sentiment"],
         )
-        session.add(row)       # stage the row -- in the cart, not bought yet
-        session.commit()       # checkout -- the row is now permanent in Postgres
-        session.refresh(row)   # get my receipt: the new id and created_at
+        session.add(row)  # stage the row -- in the cart, not bought yet
+        session.commit()  # checkout -- the row is now permanent in Postgres
+        session.refresh(row)  # get my receipt: the new id and created_at
         return row

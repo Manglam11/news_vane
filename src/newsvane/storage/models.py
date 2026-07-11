@@ -5,7 +5,7 @@ Python classes so I never hand-write raw SQL -- SQLAlchemy builds the real
 tables from these definitions.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, Float, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -35,6 +35,6 @@ class Prediction(Base):
     # time-series story -- trends, anomalies and drift all read this column.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )

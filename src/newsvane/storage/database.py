@@ -5,10 +5,9 @@ and one session factory. The connection string never lives here -- it comes
 from config, which reads it from my local .env, so no secret is hardcoded.
 """
 
+from config.settings import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-from config.settings import settings
 
 # The engine manages a reusable pool of live connections to Postgres.
 # I build it once and share it for the whole app's lifetime.
