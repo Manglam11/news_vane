@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from newsvane.models import predict
+from newsvane.storage.repository import save
 
 app = FastAPI(title="NewsVane", version="0.1.0")
 
@@ -30,7 +31,9 @@ class ClassifyResponse(BaseModel):
 
 @app.post("/classify")
 def classify(request: ClassifyRequest) -> ClassifyResponse:
-    # I pass the incoming text to the model box, then wrap its dict answer
-    # in the response shape. Today that's the dummy; later the real model.
+    # I predict, then persist. Saving here -- not inside the model -- keeps
+    # each box single-purpose: the model only thinks, the repository only
+    # remembers, and this endpoint is the only place that knows about both.
     prediction = predict(request.text)
+    save(request.text, prediction)
     return ClassifyResponse(**prediction)
