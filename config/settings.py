@@ -26,5 +26,19 @@ class Settings(BaseSettings):
     train_file: str = "train.csv"
     test_file: str = "test.csv"
 
+    # Where the trained baseline lands. Training writes it, the MODEL box reads it.
+    models_dir: Path = PROJECT_ROOT / "models"
+    baseline_model_file: str = "baseline_tfidf_nb.joblib"
+
+    # Baseline hyper-parameters. I keep them here so a retrain is a config edit, not a code edit.
+    tfidf_max_features: int = 50_000
+    tfidf_ngram_max: int = 2
+    tfidf_min_df: int = 2
+    naive_bayes_alpha: float = 0.1
+
+    @property
+    def baseline_model_path(self) -> Path:
+        return self.models_dir / self.baseline_model_file
+
 
 settings = Settings()
