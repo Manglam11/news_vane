@@ -95,3 +95,26 @@ def test_predictions_can_be_filtered_by_label(client):
 
     assert len(client.get("/predictions", params={"label": "Sports"}).json()) == 1
     assert len(client.get("/predictions", params={"label": "World"}).json()) == 0
+
+def test_save_articles_skips_duplicates():
+    """The scraper re-reads the same front page every day. If the same story could
+    land twice, tomorrow's volume trend would be pure invention -- so I prove that
+    the database itself refuses the second copy.
+    """
+    from datetime import UTC, datetime
+
+    from newsvane.storage.repository import save_articles
+
+    published = datetime(2026, 7, 14, 9, 0, tzinfo=UTC)
+    batch = [
+        {"text": "Apple sues OpenAI.", "topic": "Sci/Tech", "timestamp": published},
+        {"text": "India wins the series.", "topic": "Sports", "timestamp": published},
+    ]
+
+    assert save_articles(batch) == 2
+
+    # Same two stories, plus one genuinely new one. Only the new one may land.
+    batch.append(
+        {"text": "Rupee steadies against dollar.", "topic": "Business", "timestamp": published}
+    )
+    assert save_articles(batch) == 1

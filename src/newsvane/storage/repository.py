@@ -6,13 +6,15 @@ goes through here, so nothing else ever touches Postgres directly.
 """
 
 
+import hashlib
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from newsvane.storage.database import SessionLocal
-from newsvane.storage.models import Feedback, Prediction
+from newsvane.storage.models import Article, Feedback, Prediction
 
 
 def save(text: str, prediction: dict) -> Prediction:
@@ -76,3 +78,37 @@ def fetch(
         if label is not None:
             stmt = stmt.where(Prediction.label == label)
         return list(session.scalars(stmt))
+
+def save_articles(articles: list[dict]) -> int:
+    """Bulk-insert scraped articles, skipping any I already have. Returns the count saved.
+
+    The scraper runs daily and a front page barely changes overnight, so most of what
+    it hands me is already in the table. I let Postgres be the judge: INSERT everything
+    and tell it to ignore any row whose text_hash already exists. A SELECT-then-INSERT
+    would race, and a duplicate story is not a harmless duplicate -- it is a fake spike
+    in tomorrow's trend line.
+    """
+    if not articles:
+        return 0
+
+    rows = [
+        {
+            "text": article["text"],
+            "topic": article["topic"],
+            "published_at": article["timestamp"],
+            "text_hash": hashlib.sha256(article["text"].encode("utf-8")).hexdigest(),
+        }
+        for article in articles
+    ]
+
+    stmt = (
+        insert(Article)
+        .values(rows)
+        .on_conflict_do_nothing(constraint="uq_articles_text_hash")
+        .returning(Article.id)
+    )
+
+    with SessionLocal() as session:
+        saved = list(session.scalars(stmt))
+        session.commit()
+        return len(saved)
