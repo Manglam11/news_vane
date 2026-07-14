@@ -16,6 +16,17 @@ services:
       timeout: 3s
       retries: 5
 
+  test-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: newsvane
+      POSTGRES_PASSWORD: newsvane
+      POSTGRES_DB: newsvane_test
+    ports:
+      - "5434:5432"
+    # No named volume on purpose -- this database is disposable by design.
+    # Its entire contents should die with the container.
+
   app:
     build: .
     container_name: newsvane-api
@@ -32,3 +43,4 @@ services:
 
 volumes:
   newsvane_pgdata:
+
