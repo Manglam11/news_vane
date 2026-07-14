@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
-
 from config.settings import settings
 
 # AG News stores the topic as an integer. The meaning lives in a separate classes.txt,

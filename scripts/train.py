@@ -17,12 +17,12 @@ from pathlib import Path
 
 import joblib
 import mlflow
+from config.settings import settings
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
-from config.settings import settings
 from newsvane.data import get_articles
 
 
