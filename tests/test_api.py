@@ -14,7 +14,16 @@ def client(monkeypatch):
         saved.append((text, prediction))
         return None
 
+    # I stub predict() too. This file tests the API box, not the model box: the
+    # doorway's job is to validate input, call the contract, persist, and return
+    # the right shape. Letting a real model load here would make these tests slow,
+    # dependent on a trained artefact, and quietly retest something already covered
+    # in test_model.py. One box under test at a time.
+    def fake_predict(text):
+        return {"label": "Sports", "score": 0.99, "sentiment": "neutral"}
+
     monkeypatch.setattr("newsvane.api.main.save", fake_save)
+    monkeypatch.setattr("newsvane.api.main.predict", fake_predict)
     test_client = TestClient(app)
     test_client.saved = saved
     return test_client

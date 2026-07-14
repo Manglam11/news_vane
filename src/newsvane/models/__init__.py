@@ -1,7 +1,11 @@
-# I expose predict() from the models package itself, so every caller
-# imports it from one stable place no matter which file implements it.
-# Today that's dummy.py; in Phase 1 it becomes the real baseline -- and
-# only this single line changes, never the code that imports it.
-from newsvane.models.dummy import predict
+"""The MODEL box: predict(text) -> {label, score, sentiment}.
+
+Everything downstream imports predict from here, never from a specific model
+module. That indirection is what lets me change the brain without touching a
+single caller -- the dummy came out and the trained baseline went in by editing
+this one import line. DistilBERT will arrive the same way in Phase 5.
+"""
+
+from newsvane.models.baseline import predict
 
 __all__ = ["predict"]
