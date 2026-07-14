@@ -80,7 +80,42 @@ class Feedback(Base):
         nullable=False,
     )
 
+
+class Article(Base):
+    __tablename__ = "articles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # The section I scraped it from. This IS the label -- free, and true by construction.
+    topic: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    # When the NEWS happened. This is the clock the radar actually reads.
+    published_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    # When I collected it. Different fact, different column: a story published
+    # yesterday can be scraped today, and conflating the two would bend the trend line.
+    scraped_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    # A fingerprint of the text. The scraper runs daily and the front page barely
+    # changes overnight -- without this, one week of runs means seven copies of the
+    # same story and a volume trend that is pure invention. I cannot index the raw
+    # Text (Postgres caps a btree key at ~2.7 KB), so I index its hash instead.
+    text_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
     __table_args__ = (
-        # One correction per prediction. A human cannot vote twice.
-        UniqueConstraint("prediction_id", name="uq_feedback_prediction_id"),
+        # The database, not my code, is what guarantees I never store a story twice.
+        UniqueConstraint("text_hash", name="uq_articles_text_hash"),
+        # ANALYTICS asks "this topic, this window" of articles exactly as it does
+        # of predictions. Same question, same index.
+        Index("ix_articles_published_at", "published_at"),
+        Index("ix_articles_topic_published_at", "topic", "published_at"),
     )
