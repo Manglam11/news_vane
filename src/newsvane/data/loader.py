@@ -4,7 +4,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
+
 from config.settings import settings
+from newsvane.data.scraper import scrape_articles
 
 # AG News stores the topic as an integer. The meaning lives in a separate classes.txt,
 # so I verified this mapping against real headlines before trusting it.
@@ -24,14 +26,15 @@ def clean_text(raw: str) -> str:
     return re.sub(r"\s+", " ", raw).strip()
 
 
-def get_articles(split: str = "train") -> list[dict]:
+def load_kaggle(split: str = "train") -> list[dict]:
+    """The bootstrap source: a frozen CSV. Perfect for training, blind to today."""
     filename = settings.train_file if split == "train" else settings.test_file
     path: Path = settings.raw_data_dir / filename
 
     frame = pd.read_csv(path).rename(columns=COLUMNS)
 
-    # The bootstrap file carries no publication date. I stamp ingestion time instead —
-    # honest about what it is, and the same field the scraper will fill for real in Phase 3.
+    # The bootstrap file carries no publication date. I stamp ingestion time instead --
+    # honest about what it is, and the field the scraper now fills for real.
     ingested_at = datetime.now(UTC)
 
     return [
@@ -42,3 +45,23 @@ def get_articles(split: str = "train") -> list[dict]:
         }
         for row in frame.itertuples(index=False)
     ]
+
+
+# Every source is a function with the same signature and the same return shape. Adding a
+# third source (another newspaper, an RSS feed) means adding a key here -- nothing else.
+SOURCES = {
+    "kaggle": load_kaggle,
+    "scraper": lambda split="live": scrape_articles(),
+}
+
+
+def get_articles(source: str = "kaggle", split: str = "train") -> list[dict]:
+    """The DATA box's one and only door: [{text, topic, timestamp}, ...].
+
+    Downstream asks for articles. It is not told, and must never care, whether they
+    came from a 2004 CSV or from a live newspaper five seconds ago.
+    """
+    if source not in SOURCES:
+        raise ValueError(f"Unknown source {source!r}. Known: {sorted(SOURCES)}")
+
+    return SOURCES[source](split)
