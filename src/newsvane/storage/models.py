@@ -7,7 +7,16 @@ tables from these definitions.
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Index, String, Text, func
+from sqlalchemy import (
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -47,4 +56,31 @@ class Prediction(Base):
         # every trend query is a full table scan that grows with the project.
         Index("ix_predictions_created_at", "created_at"),
         Index("ix_predictions_label_created_at", "label", "created_at"),
+    )
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # Which prediction was wrong. The foreign key means Postgres itself
+    # refuses feedback pointing at a prediction that does not exist.
+    prediction_id: Mapped[int] = mapped_column(
+        ForeignKey("predictions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # What the human says the label should have been. This column is the
+    # entire point of the table -- it is the training data for v2.
+    correct_label: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        # One correction per prediction. A human cannot vote twice.
+        UniqueConstraint("prediction_id", name="uq_feedback_prediction_id"),
     )
