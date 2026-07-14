@@ -22,6 +22,8 @@ RUN uv sync --frozen --no-install-project --no-dev
 # Now the source. This layer rebuilds on every code change, which is cheap.
 COPY src/ ./src/
 COPY config/ ./config/
+COPY alembic.ini ./
+COPY migrations/ ./migrations/
 RUN uv sync --frozen --no-dev
 
 
