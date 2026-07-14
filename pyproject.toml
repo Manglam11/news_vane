@@ -27,7 +27,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
+    "httpx2>=2.5.0",
     "ipykernel>=7.3.0",
     "jupyter>=1.1.1",
     "pytest>=9.1.1",
@@ -36,6 +36,16 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+filterwarnings = [
+    # A warning I scroll past is a warning I have decided to ignore. I turn them
+    # into failures so a deprecation cannot rot quietly until an upgrade breaks
+    # the build. Anything I genuinely cannot fix gets an explicit line below --
+    # a written decision, with a reason, not silence.
+    "error",
+    # joblib reaches into a NumPy internal that NumPy 2.5 is retiring. The fix has
+    # to land in joblib, not here.
+    "ignore:Setting the shape on a NumPy array has been deprecated:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100
