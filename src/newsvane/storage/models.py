@@ -58,6 +58,7 @@ class Prediction(Base):
         Index("ix_predictions_label_created_at", "label", "created_at"),
     )
 
+
 class Feedback(Base):
     __tablename__ = "feedback"
 
@@ -78,6 +79,14 @@ class Feedback(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
+    )
+
+    __table_args__ = (
+        # One correction per prediction. A human cannot vote twice. It must be
+        # declared HERE and not only in the migration: the ORM is what my test
+        # database is built from, so a constraint missing here is a constraint my
+        # tests are blind to -- which is exactly how it went missing in the first place.
+        UniqueConstraint("prediction_id", name="uq_feedback_prediction_id"),
     )
 
 
