@@ -36,9 +36,25 @@ class Settings(BaseSettings):
     tfidf_min_df: int = 2
     naive_bayes_alpha: float = 0.1
 
+    # MLflow keeps run metadata in a SQLite file and the heavier artefacts on disk.
+    # The old file-only backend is deprecated as of MLflow 3.14, so I go straight to a
+    # database backend -- swapping this URI for a real server later is a config change,
+    # not a code change.
+    mlflow_db_file: Path = PROJECT_ROOT / "mlflow.db"
+    mlflow_artifacts_dir: Path = PROJECT_ROOT / "mlruns"
+    mlflow_experiment: str = "newsvane-baseline"
+
     @property
     def baseline_model_path(self) -> Path:
         return self.models_dir / self.baseline_model_file
+
+    @property
+    def mlflow_tracking_uri(self) -> str:
+        return f"sqlite:///{self.mlflow_db_file.as_posix()}"
+
+    @property
+    def mlflow_artifact_uri(self) -> str:
+        return self.mlflow_artifacts_dir.as_uri()
 
 
 settings = Settings()
