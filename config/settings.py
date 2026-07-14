@@ -44,6 +44,28 @@ class Settings(BaseSettings):
     mlflow_artifacts_dir: Path = PROJECT_ROOT / "mlruns"
     mlflow_experiment: str = "newsvane-baseline"
 
+    # --- SCRAPER (live DATA source) ---
+    # The key is MY label; the URL is where I go to get it. The section I ask for IS
+    # the label -- and these four keys must stay exactly the four classes the model
+    # was trained on. A fifth key here would produce a label the model cannot predict.
+    scraper_sections: dict[str, str] = {
+        "World": "https://www.thehindu.com/news/international/",
+        "Sports": "https://www.thehindu.com/sport/",
+        "Business": "https://www.thehindu.com/business/",
+        "Sci/Tech": "https://www.thehindu.com/sci-tech/",
+    }
+
+    # A default python user-agent gets refused by most news sites. I identify honestly
+    # as a browser rather than pretending to be invisible.
+    scraper_user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+    )
+
+    scraper_limit: int = 15       # articles per section per run
+    scraper_timeout: float = 20.0  # seconds before I give up on one request
+    scraper_delay: float = 1.0     # seconds between requests -- I am a guest on their server
+
     @property
     def baseline_model_path(self) -> Path:
         return self.models_dir / self.baseline_model_file
