@@ -8,11 +8,13 @@ Every endpoint only ever talks to the stable predict() and repository
 contracts, so swapping the model or the database engine changes nothing here.
 """
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from datetime import UTC, datetime, timedelta
+
+from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field
 
 from newsvane.models import predict
-from newsvane.storage.repository import save, save_feedback
+from newsvane.storage.repository import fetch, save, save_feedback
 
 app = FastAPI(title="NewsVane", version="0.2.0")
 
@@ -72,3 +74,31 @@ def feedback(request: FeedbackRequest) -> FeedbackResponse:
         prediction_id=row.prediction_id,
         correct_label=row.correct_label,
     )
+
+class PredictionOut(BaseModel):
+    # Pydantic reads the ORM row's attributes directly instead of me
+    # hand-copying six fields into a dict.
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    text: str
+    label: str
+    score: float
+    sentiment: str
+    created_at: datetime
+
+
+@app.get("/predictions")
+def read_predictions(
+    start: datetime | None = None,
+    end: datetime | None = None,
+    label: str | None = None,
+    limit: int = Query(default=100, ge=1, le=1000),
+) -> list[PredictionOut]:
+    # A caller who names no window means "the last 24 hours" -- an unbounded
+    # default would let one request drag the whole table over the wire.
+    now = datetime.now(UTC)
+    start = start or now - timedelta(days=1)
+    end = end or now
+    rows = fetch(start=start, end=end, label=label, limit=limit)
+    return [PredictionOut.model_validate(row) for row in rows]

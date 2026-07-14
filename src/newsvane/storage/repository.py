@@ -5,6 +5,10 @@ into a saved row and hand back what landed in the database. Every other box
 goes through here, so nothing else ever touches Postgres directly.
 """
 
+
+from datetime import datetime
+
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from newsvane.storage.database import SessionLocal
@@ -49,3 +53,26 @@ def save_feedback(prediction_id: int, correct_label: str) -> Feedback | None:
             return None
         session.refresh(row)
         return row
+
+def fetch(
+    start: datetime,
+    end: datetime,
+    label: str | None = None,
+    limit: int = 100,
+) -> list[Prediction]:
+    """Fetch predictions made inside a time window, newest first.
+
+    The window is half-open -- start is included, end is not -- so calling
+    this for consecutive days can never count the same row twice. That
+    property is what lets ANALYTICS bucket rows by day without double-counting.
+    """
+    with SessionLocal() as session:
+        stmt = (
+            select(Prediction)
+            .where(Prediction.created_at >= start, Prediction.created_at < end)
+            .order_by(Prediction.created_at.desc())
+            .limit(limit)
+        )
+        if label is not None:
+            stmt = stmt.where(Prediction.label == label)
+        return list(session.scalars(stmt))
