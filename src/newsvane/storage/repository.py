@@ -12,6 +12,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, select
 
 from newsvane.storage.database import SessionLocal
 from newsvane.storage.models import Article, Feedback, Prediction
@@ -112,3 +113,27 @@ def save_articles(articles: list[dict]) -> int:
         saved = list(session.scalars(stmt))
         session.commit()
         return len(saved)
+
+def count_by_day(start: datetime, end: datetime) -> list[dict]:
+    """Count articles per topic per day inside a half-open window.
+
+    This is the raw material the radar draws: one number per topic, per day.
+    I group in Postgres rather than pulling every row into Python -- the
+    database counts millions of rows far faster than a for-loop ever could,
+    and date_trunc gives me a clean day-bucket straight from the timestamp.
+
+    The window is half-open (start included, end excluded), the same honest
+    bucket fetch() uses, so two consecutive windows can never share a row.
+    """
+    day = func.date_trunc("day", Article.published_at)
+    with SessionLocal() as session:
+        stmt = (
+            select(day.label("day"), Article.topic, func.count().label("n"))
+            .where(Article.published_at >= start, Article.published_at < end)
+            .group_by(day, Article.topic)
+            .order_by(day, Article.topic)
+        )
+        return [
+            {"day": row.day, "topic": row.topic, "count": row.n}
+            for row in session.execute(stmt)
+        ]
