@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     scraper_limit: int = 15       # articles per section per run
     scraper_timeout: float = 20.0  # seconds before I give up on one request
     scraper_delay: float = 1.0     # seconds between requests -- I am a guest on their server
+    # --- ANALYTICS ---
+    # How many standard deviations above a topic's own normal counts as a spike.
+    # 3.0 is the textbook "rare event" line; I keep it here so tuning the radar's
+    # sensitivity is a config edit, never a code edit.
+    anomaly_z_threshold: float = 3.0
 
     @property
     def baseline_model_path(self) -> Path:
