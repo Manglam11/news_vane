@@ -1,0 +1,38 @@
+name: Daily scrape
+
+# I run this on a schedule so fresh articles flow in without me lifting a finger,
+# and I keep a manual trigger so I can fire it on demand while testing.
+on:
+  schedule:
+    # 06:00 UTC = 11:30 IST. GitHub cron is ALWAYS UTC, never my local time.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    # The scraper needs exactly one secret: where the cloud database lives.
+    # It never touches a committed file -- GitHub injects it only at runtime.
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # The same rule as my container: migrate before I do any work. If I ever add a
+      # migration, the scheduled job applies it to the cloud DB before scraping.
+      - name: Run migrations
+        run: uv run alembic upgrade head
+
+      - name: Scrape today's articles
+        run: uv run python -m scripts.run_scraper
