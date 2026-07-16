@@ -3,13 +3,13 @@ from config.settings import settings
 
 from newsvane.models import predict
 
-# The MODEL box now loads a trained artefact off disk, and that file is a build
-# output, not source -- it does not exist in a fresh clone or in CI until training
-# has run. I skip rather than fail, because a missing model is a "not built yet"
-# condition, not a broken contract.
+# The MODEL box now loads a fine-tuned DistilBERT off disk, and that folder is a
+# build output, not source -- it does not exist in a fresh clone or in CI until
+# training has run. I skip rather than fail, because a missing model is a "not
+# built yet" condition, not a broken contract.
 needs_trained_model = pytest.mark.skipif(
-    not settings.baseline_model_path.exists(),
-    reason="no trained baseline on disk -- run `uv run python -m scripts.train`",
+    not settings.distilbert_output_dir.exists(),
+    reason="no fine-tuned model on disk -- run `uv run python -m scripts.train_distilbert`",
 )
 
 
