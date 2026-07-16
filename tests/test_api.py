@@ -118,3 +118,56 @@ def test_save_articles_skips_duplicates():
         {"text": "Rupee steadies against dollar.", "topic": "Business", "timestamp": published}
     )
     assert save_articles(batch) == 1
+
+def _fake_pulse():
+    # A stand-in for summarise()'s four-key shape. I stub it because the maths
+    # is already proven in the analytics tests -- here I test only that the
+    # endpoint calls the door and passes its answer through unchanged. Testing
+    # the maths again through the API would point a wiring failure at the wrong box.
+    from datetime import UTC, datetime
+
+    day = datetime(2026, 7, 15, tzinfo=UTC)
+    return {
+        "trends": {"Sports": [{"day": day, "count": 9}]},
+        "distribution": {
+            "day": day,
+            "distance": 0.4,
+            "today": {"Sports": 1.0},
+            "norm": {"Sports": 1.0},
+        },
+        "anomalies": [
+            {"topic": "Sports", "day": day, "count": 9, "baseline": 2.0, "z_score": 4.1}
+        ],
+        "drift": None,
+    }
+
+
+def test_pulse_serves_the_analytics_contract(client, monkeypatch):
+    # Stub the door, not the engines behind it. Same reason the model is stubbed:
+    # one box under test. I assert the endpoint returns summarise()'s shape intact.
+    monkeypatch.setattr(main, "summarise", lambda start, end: _fake_pulse())
+
+    response = client.get("/pulse")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {"trends", "distribution", "anomalies", "drift"}
+    assert body["anomalies"][0]["z_score"] == 4.1
+    assert body["drift"] is None
+
+
+def test_pulse_passes_its_window_to_summarise(client, monkeypatch):
+    # A caller's ?start&end must reach the maths unchanged -- if the endpoint
+    # dropped them, every pulse would silently answer for the wrong window.
+    seen = {}
+
+    def spy(start, end):
+        seen["start"], seen["end"] = start, end
+        return _fake_pulse()
+
+    monkeypatch.setattr(main, "summarise", spy)
+
+    client.get("/pulse", params={"start": "2026-07-01T00:00:00Z", "end": "2026-07-08T00:00:00Z"})
+
+    assert seen["start"].isoformat() == "2026-07-01T00:00:00+00:00"
+    assert seen["end"].isoformat() == "2026-07-08T00:00:00+00:00"
