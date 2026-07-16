@@ -74,6 +74,16 @@ class Settings(BaseSettings):
     distilbert_checkpoint: str = "distilbert-base-uncased"
     distilbert_max_length: int = 128
 
+    # DistilBERT fine-tuning knobs. A retrain is a config edit, never a code edit.
+    distilbert_epochs: int = 3
+    distilbert_train_batch_size: int = 16
+    distilbert_eval_batch_size: int = 32
+    distilbert_learning_rate: float = 5e-5
+    distilbert_weight_decay: float = 0.01
+    distilbert_warmup_ratio: float = 0.1
+    distilbert_output_file: str = "distilbert"
+    distilbert_fp16: bool = True
+
     @property
     def baseline_model_path(self) -> Path:
         return self.models_dir / self.baseline_model_file
@@ -85,6 +95,10 @@ class Settings(BaseSettings):
     @property
     def mlflow_artifact_uri(self) -> str:
         return self.mlflow_artifacts_dir.as_uri()
+
+    @property
+    def distilbert_output_dir(self) -> Path:
+        return self.models_dir / self.distilbert_output_file
 
 
 settings = Settings()
