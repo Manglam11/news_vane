@@ -47,7 +47,7 @@ def setup_tracking() -> None:
 
 def load_split(split: str) -> tuple[list[str], list[str]]:
     """Pull one split through the DATA box and unzip it into X and y."""
-    articles = get_articles(split)
+    articles = get_articles("kaggle", split)
     texts = [article["text"] for article in articles]
     topics = [article["topic"] for article in articles]
     return texts, topics
