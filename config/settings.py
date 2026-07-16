@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     # sensitivity is a config edit, never a code edit.
     anomaly_z_threshold: float = 3.0
 
+    distilbert_checkpoint: str = "distilbert-base-uncased"
+    distilbert_max_length: int = 128
+
     @property
     def baseline_model_path(self) -> Path:
         return self.models_dir / self.baseline_model_file
