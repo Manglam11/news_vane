@@ -52,5 +52,6 @@ def test_summarise_routes_data_into_each_engine(seeded_week):
     # anomalies caught the last-day World spike.
     assert any(record["topic"] == "World" for record in pulse["anomalies"])
 
-    # drift is honoured in shape but not yet computed.
-    assert pulse["drift"] is None
+    # drift now fires: the seeded week is skewed far from the balanced training mix.
+    assert pulse["drift"] is not None
+    assert pulse["drift"]["is_drifting"] is True

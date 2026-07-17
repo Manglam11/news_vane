@@ -45,10 +45,11 @@ def _kl(p: list[float], q: list[float]) -> float:
     return sum(pi * log2(pi / qi) for pi, qi in zip(p, q, strict=True) if pi > 0)
 
 
-def _js_divergence(p: list[float], q: list[float]) -> float:
+def js_divergence(p: list[float], q: list[float]) -> float:
     # Jensen-Shannon: the symmetric, always-finite average of each side's KL to
     # their midpoint M. Bounded in [0, 1] with base-2 logs. 0 = identical shapes,
-    # 1 = maximally different.
+    # 1 = maximally different. Public because the drift alarm reuses it verbatim --
+    # one statistic, two jobs, and I refuse to keep two copies of one formula.
     m = [(pi + qi) / 2 for pi, qi in zip(p, q, strict=True)]
     return 0.5 * _kl(p, m) + 0.5 * _kl(q, m)
 
@@ -74,7 +75,7 @@ def topic_mix_shift(start: datetime, end: datetime) -> dict | None:
 
     return {
         "day": days[-1],
-        "distance": _js_divergence(today, norm),
+        "distance": js_divergence(today, norm),
         "today": dict(zip(TOPICS, today, strict=True)),
         "norm": dict(zip(TOPICS, norm, strict=True)),
     }

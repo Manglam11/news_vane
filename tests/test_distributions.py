@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from newsvane.analytics.distributions import (
-    _js_divergence,
+    js_divergence,
     topic_mix_shift,
 )
 from newsvane.storage import repository
@@ -21,21 +21,21 @@ from newsvane.storage import repository
 def test_identical_shapes_have_zero_distance():
     # Two identical distributions are zero apart -- the defining property.
     p = [0.25, 0.25, 0.25, 0.25]
-    assert _js_divergence(p, p) == 0.0
+    assert js_divergence(p, p) == 0.0
 
 
 def test_opposite_shapes_have_max_distance():
     # Two distributions with no overlap sit at the ceiling: base-2 JS = 1.0.
     p = [1.0, 0.0, 0.0, 0.0]
     q = [0.0, 1.0, 0.0, 0.0]
-    assert _js_divergence(p, q) == pytest.approx(1.0)
+    assert js_divergence(p, q) == pytest.approx(1.0)
 
 
 def test_partial_overlap_sits_between():
     # A shape that half-agrees lands strictly between the two extremes.
     p = [0.5, 0.5, 0.0, 0.0]
     q = [0.5, 0.0, 0.5, 0.0]
-    distance = _js_divergence(p, q)
+    distance = js_divergence(p, q)
     assert 0.0 < distance < 1.0
 
 

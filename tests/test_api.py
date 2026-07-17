@@ -138,7 +138,13 @@ def _fake_pulse():
         "anomalies": [
             {"topic": "Sports", "day": day, "count": 9, "baseline": 2.0, "z_score": 4.1}
         ],
-        "drift": None,
+        "drift": {
+            "distance": 0.55,
+            "threshold": 0.1,
+            "is_drifting": True,
+            "live": {"World": 1.0},
+            "reference": {"World": 0.25, "Sports": 0.25, "Business": 0.25, "Sci/Tech": 0.25},
+        },
     }
 
 
@@ -153,7 +159,8 @@ def test_pulse_serves_the_analytics_contract(client, monkeypatch):
     body = response.json()
     assert set(body) == {"trends", "distribution", "anomalies", "drift"}
     assert body["anomalies"][0]["z_score"] == 4.1
-    assert body["drift"] is None
+    # The new typed DriftOut must survive the round-trip through the endpoint.
+    assert body["drift"]["is_drifting"] is True
 
 
 def test_pulse_passes_its_window_to_summarise(client, monkeypatch):

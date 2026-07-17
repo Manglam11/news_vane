@@ -133,13 +133,24 @@ class AnomalyOut(BaseModel):
     z_score: float
 
 
+class DriftOut(BaseModel):
+    # How far the live window's topic-mix has drifted from the model's frozen
+    # training mix. distance is the JS divergence in [0, 1]; is_drifting is that
+    # distance crossing the settings line -- the signal the model is going stale.
+    distance: float
+    threshold: float
+    is_drifting: bool
+    live: dict[str, float]
+    reference: dict[str, float]
+
+
 class PulseResponse(BaseModel):
-    # The frozen ANALYTICS contract, now typed so /docs describes every key.
-    # drift is None until Phase 6 -- the shape is honoured today regardless.
+    # The frozen ANALYTICS contract, fully typed so /docs describes every key.
+    # drift is None only when the window holds no articles to measure.
     trends: dict[str, list[TrendPoint]]
     distribution: DistributionOut
     anomalies: list[AnomalyOut]
-    drift: None = None
+    drift: DriftOut | None = None
 
 
 @app.get("/pulse")
