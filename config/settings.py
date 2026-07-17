@@ -71,6 +71,23 @@ class Settings(BaseSettings):
     # sensitivity is a config edit, never a code edit.
     anomaly_z_threshold: float = 3.0
 
+    # The drift yardstick: the topic-mix the model was trained on. AG News is a
+    # balanced benchmark, so the training split is a clean 25% per class -- I derived
+    # these once with probe_reference.py and froze them here rather than reading them
+    # live, because data/raw/ is git-ignored and simply does not exist at serve or CI
+    # time. Drift compares live news against this fixed shape.
+    drift_reference: dict[str, float] = {
+        "World": 0.25,
+        "Sports": 0.25,
+        "Business": 0.25,
+        "Sci/Tech": 0.25,
+    }
+
+    # How far live news may drift from the training mix before I raise the alarm.
+    # JS divergence is bounded [0, 1]; 0.1 is a deliberately loud early line for a
+    # fresh radar -- like the z-threshold, tuning it is a config edit, never a code edit.
+    drift_threshold: float = 0.1
+
     distilbert_checkpoint: str = "distilbert-base-uncased"
     distilbert_max_length: int = 128
 
