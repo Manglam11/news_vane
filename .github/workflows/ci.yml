@@ -14,13 +14,15 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
 
+      # Ruff reads files; it never imports my code. So the lint job installs the lint
+      # group only -- no torch, no transformers, no jupyter. Nothing this job cannot use.
       - name: Install dependencies
         run: uv sync --frozen --only-group lint
 
@@ -65,18 +67,15 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
 
-      # Ruff reads files; it never imports my code. So the lint job installs the dev
-      # group only and skips the project's own dependencies entirely -- no torch, no
-      # transformers, no mlflow pulled down to check formatting.
       - name: Install dependencies
-        run: uv sync --frozen --only-group dev
+        run: uv sync --frozen
 
       # The suite builds its own schema from the ORM in conftest, so no alembic step here --
       # migrations are tested on their own, and a test run should never depend on a chain of
