@@ -2395,6 +2395,9 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
+lint = [
+    { name = "ruff" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -2427,6 +2430,7 @@ dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.15.21" },
 ]
+lint = [{ name = "ruff", specifier = ">=0.15.21" }]
 
 [[package]]
 name = "notebook"
