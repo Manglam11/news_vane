@@ -1,0 +1,82 @@
+name: CI
+
+# I run the gates on every push and every PR into main, so a red build is caught
+# the moment code lands, never discovered later. This is separate from the daily
+# scrape: that job writes to my real cloud DB on a timer; this one only ever tests.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # The exact two gates I run locally, now enforced for everyone. check finds
+      # lint breaks; format --check fails if anything is unformatted, without
+      # rewriting files -- CI reports, it never edits.
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+
+    # A throwaway Postgres that lives only for this job. It is NOT my Neon cloud DB --
+    # pytest truncates tables between tests, so pointing it at production would wipe my
+    # real articles every push. This container is born empty and dies with the runner.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: newsvane
+          POSTGRES_PASSWORD: newsvane
+          POSTGRES_DB: newsvane_test
+        ports:
+          - 5434:5432
+        # The job must not run pytest until Postgres is actually accepting connections.
+        # Without this, the first test races the database starting up and fails randomly.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Two URLs, one container. DATABASE_URL satisfies settings at import time (database.py
+    # builds its engine the moment it is imported, before any fixture runs). TEST_DATABASE_URL
+    # is where the fixtures actually read and write. Both point at the same throwaway DB.
+    env:
+      DATABASE_URL: postgresql+psycopg://newsvane:newsvane@localhost:5434/newsvane_test
+      TEST_DATABASE_URL: postgresql+psycopg://newsvane:newsvane@localhost:5434/newsvane_test
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # The suite builds its own schema from the ORM in conftest, so no alembic step here --
+      # migrations are tested on their own, and a test run should never depend on a chain of
+      # them replaying. Warnings are errors (pyproject), so a deprecation fails the build too.
+      - name: Run tests
+        run: uv run pytest
