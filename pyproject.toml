@@ -16,6 +16,8 @@ dependencies = [
     "joblib>=1.5.3",
     "lxml>=6.1.1",
     "mlflow>=3",
+    "onnx>=1.22.0",
+    "onnxruntime>=1.27.0",
     "pandas>=2.2,<3",
     "pandas-stubs>=2.2,<3",
     "psycopg[binary]>=3.3.4",
@@ -41,6 +43,7 @@ dev = [
     "httpx2>=2.5.0",
     "ipykernel>=7.3.0",
     "jupyter>=1.1.1",
+    "onnxscript>=0.7.1",
     "pytest>=9.1.1",
 ]
 [tool.pytest.ini_options]
