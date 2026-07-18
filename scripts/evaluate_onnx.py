@@ -15,12 +15,12 @@ import mlflow
 import numpy as np
 import onnxruntime as ort
 from config.settings import settings
+from scripts.train import setup_tracking
+from scripts.train_distilbert import log_evaluation
 from sklearn.metrics import classification_report, f1_score
 from transformers import DataCollatorWithPadding
 
 from newsvane.models.distilbert_data import LABELS, build_split, load_tokenizer
-from scripts.train import setup_tracking
-from scripts.train_distilbert import log_evaluation
 
 TORCH_BAR = 0.9452
 BASELINE_BAR = 0.9060
@@ -61,8 +61,7 @@ def score(y_true, y_pred) -> tuple[float, float, dict]:
     ids = list(range(len(LABELS)))
     per_class = f1_score(y_true, y_pred, average=None, labels=ids)
     named = {
-        f"f1_{LABELS[i].replace('/', '_').lower()}": value
-        for i, value in enumerate(per_class)
+        f"f1_{LABELS[i].replace('/', '_').lower()}": value for i, value in enumerate(per_class)
     }
     return macro, weighted, named
 
@@ -85,16 +84,12 @@ def main() -> None:
     print(f"test rows: {len(dataset)}")
 
     print("\nfloat32 graph (harness control)...")
-    fp32_pred = run_graph(
-        settings.distilbert_onnx_path, dataset, collator, batch_size
-    )
+    fp32_pred = run_graph(settings.distilbert_onnx_path, dataset, collator, batch_size)
     fp32_macro, fp32_weighted, _ = score(y_true, fp32_pred)
     print(f"  macro F1 : {fp32_macro:.4f}   (torch was {TORCH_BAR:.4f})")
 
     print("\nint8 graph...")
-    int8_pred = run_graph(
-        settings.distilbert_onnx_int8_path, dataset, collator, batch_size
-    )
+    int8_pred = run_graph(settings.distilbert_onnx_int8_path, dataset, collator, batch_size)
     int8_macro, int8_weighted, int8_per_class = score(y_true, int8_pred)
 
     size_mb = settings.distilbert_onnx_int8_path.stat().st_size / 1024**2

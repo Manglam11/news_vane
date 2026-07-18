@@ -17,9 +17,8 @@ and it is one line to switch back when the exporter catches up.
 import numpy as np
 import onnxruntime as ort
 import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
 from config.settings import settings
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 # Sentences of deliberately different lengths. If the export baked in a fixed shape,
 # the short one and the long one cannot both pass -- that is the point of using two.

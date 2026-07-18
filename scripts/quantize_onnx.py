@@ -13,11 +13,9 @@ is a downgrade wearing a costume.
 
 import numpy as np
 import onnxruntime as ort
-import torch
+from config.settings import settings
 from onnxruntime.quantization import QuantType, quantize_dynamic
 from transformers import AutoTokenizer
-
-from config.settings import settings
 
 PROBE_TEXTS = [
     "Markets fell sharply today.",
