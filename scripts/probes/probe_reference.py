@@ -10,6 +10,7 @@ and CI time, so a runtime read would crash exactly when drift matters most.
 from collections import Counter
 
 from config.settings import settings
+
 from newsvane.data.loader import get_articles
 
 TOPICS = list(settings.scraper_sections)

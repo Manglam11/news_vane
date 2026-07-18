@@ -11,6 +11,7 @@ from pathlib import Path
 import mlflow
 import numpy as np
 from config.settings import settings
+from scripts.train import setup_tracking
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from transformers import (
     AutoModelForSequenceClassification,
@@ -20,7 +21,6 @@ from transformers import (
 )
 
 from newsvane.models.distilbert_data import LABELS, build_split, load_tokenizer
-from scripts.train import setup_tracking
 
 ID_TO_LABEL = dict(enumerate(LABELS))
 LABEL_TO_ID = {name: index for index, name in ID_TO_LABEL.items()}
@@ -119,8 +119,7 @@ def main() -> None:
         weighted = f1_score(y_true, y_pred, average="weighted")
         per_class = f1_score(y_true, y_pred, average=None, labels=list(range(len(LABELS))))
         class_metrics = {
-            f"f1_{LABELS[i].replace('/', '_').lower()}": score
-            for i, score in enumerate(per_class)
+            f"f1_{LABELS[i].replace('/', '_').lower()}": score for i, score in enumerate(per_class)
         }
 
         mlflow.log_metrics({"macro_f1": macro, "weighted_f1": weighted, **class_metrics})

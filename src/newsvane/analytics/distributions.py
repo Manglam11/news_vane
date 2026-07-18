@@ -16,6 +16,7 @@ from datetime import datetime
 from math import log2
 
 from config.settings import settings
+
 from newsvane.storage.repository import count_by_day
 
 # The topic order is fixed and tied to the model's label space, so every day's

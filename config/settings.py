@@ -62,9 +62,9 @@ class Settings(BaseSettings):
         "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
     )
 
-    scraper_limit: int = 15       # articles per section per run
+    scraper_limit: int = 15  # articles per section per run
     scraper_timeout: float = 20.0  # seconds before I give up on one request
-    scraper_delay: float = 1.0     # seconds between requests -- I am a guest on their server
+    scraper_delay: float = 1.0  # seconds between requests -- I am a guest on their server
     # --- ANALYTICS ---
     # How many standard deviations above a topic's own normal counts as a spike.
     # 3.0 is the textbook "rare event" line; I keep it here so tuning the radar's

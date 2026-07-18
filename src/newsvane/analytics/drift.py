@@ -17,6 +17,7 @@ from collections import Counter
 from datetime import datetime
 
 from config.settings import settings
+
 from newsvane.analytics.distributions import TOPICS, js_divergence
 from newsvane.storage.repository import count_by_day
 

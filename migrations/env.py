@@ -9,9 +9,9 @@ Two things I plug in here, and only two:
 from logging.config import fileConfig
 
 from alembic import context
+from config.settings import settings
 from sqlalchemy import engine_from_config, pool
 
-from config.settings import settings
 from newsvane.storage.models import Base
 
 config = context.config

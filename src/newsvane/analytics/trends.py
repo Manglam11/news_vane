@@ -24,7 +24,5 @@ def topic_momentum(start: datetime, end: datetime) -> dict[str, list[dict]]:
 
     series: dict[str, list[dict]] = {}
     for row in rows:
-        series.setdefault(row["topic"], []).append(
-            {"day": row["day"], "count": row["count"]}
-        )
+        series.setdefault(row["topic"], []).append({"day": row["day"], "count": row["count"]})
     return series

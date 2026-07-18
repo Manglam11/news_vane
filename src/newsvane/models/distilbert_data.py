@@ -6,10 +6,10 @@ reader of the CSV would risk a quiet mismatch, and the fair fight would be lost
 before it even started.
 """
 
+from config.settings import settings
 from datasets import Dataset
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
-from config.settings import settings
 from newsvane.data import get_articles
 
 # Alphabetical on purpose: this matches the baseline's sorted() label order, so the

@@ -11,9 +11,8 @@ import time
 from datetime import datetime
 
 import httpx
-from lxml import html
-
 from config.settings import settings
+from lxml import html
 
 # The Hindu marks every real story with an article id + .ece. Anything without
 # one is navigation, not news.

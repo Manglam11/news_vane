@@ -61,6 +61,13 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# Alembic writes these files, not me, and they are applied history -- the local
+# DB, the test DB and Neon have all already run them. Reformatting an applied
+# migration edits the record of what happened. I let the generator's long lines
+# stand and keep every other rule switched on.
+"migrations/versions/*.py" = ["E501"]
+
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"

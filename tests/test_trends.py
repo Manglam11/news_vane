@@ -6,7 +6,6 @@ that topic_momentum reshapes them into the exact per-topic daily series I
 expect. The maths is proven now; the real data just fills in behind it.
 """
 
-import hashlib
 from datetime import UTC, datetime, timedelta
 
 import pytest

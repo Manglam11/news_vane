@@ -14,7 +14,7 @@ train = build_split("train", tokenizer)
 test = build_split("test", tokenizer)
 
 print(f"train rows: {len(train)}")
-print(f"test rows : {len(test)}")   # must match the baseline's test count -- the fair fight
+print(f"test rows : {len(test)}")  # must match the baseline's test count -- the fair fight
 print(f"columns   : {train.column_names}")
 
 sample = test[0]

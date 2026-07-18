@@ -40,8 +40,7 @@ def load_model() -> tuple[PreTrainedTokenizerBase, PreTrainedModel]:
     path = settings.distilbert_output_dir
     if not path.exists():
         raise FileNotFoundError(
-            f"No fine-tuned model at {path}. "
-            f"Run `uv run python -m scripts.train_distilbert` first."
+            f"No fine-tuned model at {path}. Run `uv run python -m scripts.train_distilbert` first."
         )
 
     tokenizer = AutoTokenizer.from_pretrained(path)

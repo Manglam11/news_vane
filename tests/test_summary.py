@@ -22,9 +22,15 @@ def seeded_week():
 
     articles = []
     for day, n in zip(days[:-1], baseline, strict=True):
-        articles += [{"text": f"world {day} {i}", "topic": "World", "timestamp": day} for i in range(n)]
-        articles += [{"text": f"sports {day} {i}", "topic": "Sports", "timestamp": day} for i in range(2)]
-    articles += [{"text": f"world spike {i}", "topic": "World", "timestamp": days[-1]} for i in range(20)]
+        articles += [
+            {"text": f"world {day} {i}", "topic": "World", "timestamp": day} for i in range(n)
+        ]
+        articles += [
+            {"text": f"sports {day} {i}", "topic": "Sports", "timestamp": day} for i in range(2)
+        ]
+    articles += [
+        {"text": f"world spike {i}", "topic": "World", "timestamp": days[-1]} for i in range(20)
+    ]
 
     repository.save_articles(articles)
     return days[0], days[-1] + timedelta(days=1)

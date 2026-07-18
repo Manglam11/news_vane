@@ -5,14 +5,12 @@ into a saved row and hand back what landed in the database. Every other box
 goes through here, so nothing else ever touches Postgres directly.
 """
 
-
 import hashlib
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func, select
 
 from newsvane.storage.database import SessionLocal
 from newsvane.storage.models import Article, Feedback, Prediction
@@ -57,6 +55,7 @@ def save_feedback(prediction_id: int, correct_label: str) -> Feedback | None:
         session.refresh(row)
         return row
 
+
 def fetch(
     start: datetime,
     end: datetime,
@@ -79,6 +78,7 @@ def fetch(
         if label is not None:
             stmt = stmt.where(Prediction.label == label)
         return list(session.scalars(stmt))
+
 
 def save_articles(articles: list[dict]) -> int:
     """Bulk-insert scraped articles, skipping any I already have. Returns the count saved.
@@ -114,6 +114,7 @@ def save_articles(articles: list[dict]) -> int:
         session.commit()
         return len(saved)
 
+
 def count_by_day(start: datetime, end: datetime) -> list[dict]:
     """Count articles per topic per day inside a half-open window.
 
@@ -134,6 +135,5 @@ def count_by_day(start: datetime, end: datetime) -> list[dict]:
             .order_by(day, Article.topic)
         )
         return [
-            {"day": row.day, "topic": row.topic, "count": row.n}
-            for row in session.execute(stmt)
+            {"day": row.day, "topic": row.topic, "count": row.n} for row in session.execute(stmt)
         ]

@@ -96,6 +96,7 @@ def test_predictions_can_be_filtered_by_label(client):
     assert len(client.get("/predictions", params={"label": "Sports"}).json()) == 1
     assert len(client.get("/predictions", params={"label": "World"}).json()) == 0
 
+
 def test_save_articles_skips_duplicates():
     """The scraper re-reads the same front page every day. If the same story could
     land twice, tomorrow's volume trend would be pure invention -- so I prove that
@@ -119,6 +120,7 @@ def test_save_articles_skips_duplicates():
     )
     assert save_articles(batch) == 1
 
+
 def _fake_pulse():
     # A stand-in for summarise()'s four-key shape. I stub it because the maths
     # is already proven in the analytics tests -- here I test only that the
@@ -135,9 +137,7 @@ def _fake_pulse():
             "today": {"Sports": 1.0},
             "norm": {"Sports": 1.0},
         },
-        "anomalies": [
-            {"topic": "Sports", "day": day, "count": 9, "baseline": 2.0, "z_score": 4.1}
-        ],
+        "anomalies": [{"topic": "Sports", "day": day, "count": 9, "baseline": 2.0, "z_score": 4.1}],
         "drift": {
             "distance": 0.55,
             "threshold": 0.1,

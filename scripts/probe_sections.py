@@ -43,9 +43,7 @@ def probe(label: str, url: str) -> None:
 
     tree = html.fromstring(response.text)
     anchors = tree.xpath("//a[@href]")
-    article_links = [
-        a for a in anchors if ARTICLE_RE.search(a.get("href", ""))
-    ]
+    article_links = [a for a in anchors if ARTICLE_RE.search(a.get("href", ""))]
 
     # De-duplicate, because a card links to the same story from image + title.
     unique = {a.get("href"): (a.text_content() or "").strip() for a in article_links}

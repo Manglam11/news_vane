@@ -5,6 +5,7 @@ here is saved or logged; it exists only to fail fast and cheap.
 """
 
 import torch
+from config.settings import settings
 from transformers import (
     AutoModelForSequenceClassification,
     DataCollatorWithPadding,
@@ -12,7 +13,6 @@ from transformers import (
     TrainingArguments,
 )
 
-from config.settings import settings
 from newsvane.models.distilbert_data import LABELS, build_split, load_tokenizer
 
 tokenizer = load_tokenizer()
@@ -27,8 +27,8 @@ model = AutoModelForSequenceClassification.from_pretrained(
 )
 
 args = TrainingArguments(
-    output_dir="models/_smoke",   # throwaway
-    max_steps=10,                 # stop after 10 steps, not 3 epochs
+    output_dir="models/_smoke",  # throwaway
+    max_steps=10,  # stop after 10 steps, not 3 epochs
     per_device_train_batch_size=16,
     fp16=settings.distilbert_fp16,
     report_to="none",

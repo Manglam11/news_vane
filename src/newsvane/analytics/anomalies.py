@@ -15,6 +15,7 @@ from datetime import datetime
 from statistics import mean, stdev
 
 from config.settings import settings
+
 from newsvane.storage.repository import count_by_day
 
 TOPICS = list(settings.scraper_sections)
