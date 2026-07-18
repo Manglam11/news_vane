@@ -101,6 +101,13 @@ class Settings(BaseSettings):
     distilbert_output_file: str = "distilbert"
     distilbert_fp16: bool = True
 
+    # The serving artefacts. The fine-tuned PyTorch model is a TRAINING output; these
+    # two are what actually ship. The float32 graph is an intermediate I keep for
+    # comparison, and the int8 graph is the one the container serves -- it has to fit
+    # inside a 512 MB free tier, which torch never could.
+    distilbert_onnx_file: str = "distilbert.onnx"
+    distilbert_onnx_int8_file: str = "distilbert.int8.onnx"
+
     @property
     def baseline_model_path(self) -> Path:
         return self.models_dir / self.baseline_model_file
@@ -116,6 +123,14 @@ class Settings(BaseSettings):
     @property
     def distilbert_output_dir(self) -> Path:
         return self.models_dir / self.distilbert_output_file
+
+    @property
+    def distilbert_onnx_path(self) -> Path:
+        return self.models_dir / self.distilbert_onnx_file
+
+    @property
+    def distilbert_onnx_int8_path(self) -> Path:
+        return self.models_dir / self.distilbert_onnx_int8_file
 
 
 settings = Settings()
