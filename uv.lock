@@ -2413,15 +2413,13 @@ name = "newsvane"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "accelerate" },
     { name = "alembic" },
-    { name = "datasets" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "joblib" },
     { name = "lxml" },
     { name = "mlflow" },
-    { name = "onnx" },
+    { name = "numpy" },
     { name = "onnxruntime" },
     { name = "pandas" },
     { name = "pandas-stubs" },
@@ -2429,10 +2427,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "scikit-learn" },
     { name = "sqlalchemy" },
-    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
-    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
-    { name = "torch", version = "2.11.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "sys_platform == 'win32'" },
-    { name = "transformers" },
+    { name = "tokenizers" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -2448,18 +2443,25 @@ dev = [
 lint = [
     { name = "ruff" },
 ]
+train = [
+    { name = "accelerate" },
+    { name = "datasets" },
+    { name = "onnx" },
+    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
+    { name = "torch", version = "2.11.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "sys_platform == 'win32'" },
+    { name = "transformers" },
+]
 
 [package.metadata]
 requires-dist = [
-    { name = "accelerate", specifier = ">=1.1.0" },
     { name = "alembic", specifier = ">=1.18.5" },
-    { name = "datasets", specifier = ">=5.0.0" },
     { name = "fastapi", specifier = ">=0.139.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "joblib", specifier = ">=1.5.3" },
     { name = "lxml", specifier = ">=6.1.1" },
     { name = "mlflow", specifier = ">=3" },
-    { name = "onnx", specifier = ">=1.22.0" },
+    { name = "numpy", specifier = ">=2.5.1" },
     { name = "onnxruntime", specifier = ">=1.27.0" },
     { name = "pandas", specifier = ">=2.2,<3" },
     { name = "pandas-stubs", specifier = ">=2.2,<3" },
@@ -2467,10 +2469,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
     { name = "sqlalchemy", specifier = ">=2.0.51" },
-    { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = "==2.11.0" },
-    { name = "torch", marker = "sys_platform == 'linux'", specifier = "==2.11.0", index = "https://download.pytorch.org/whl/cpu" },
-    { name = "torch", marker = "sys_platform == 'win32'", specifier = "==2.11.0", index = "https://download.pytorch.org/whl/cu128" },
-    { name = "transformers", specifier = ">=5.14.1" },
+    { name = "tokenizers", specifier = ">=0.22.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.51.0" },
 ]
 
@@ -2484,6 +2483,15 @@ dev = [
     { name = "ruff", specifier = ">=0.15.21" },
 ]
 lint = [{ name = "ruff", specifier = ">=0.15.21" }]
+train = [
+    { name = "accelerate", specifier = ">=1.1.0" },
+    { name = "datasets", specifier = ">=5.0.0" },
+    { name = "onnx", specifier = ">=1.22.0" },
+    { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = "==2.11.0" },
+    { name = "torch", marker = "sys_platform == 'linux'", specifier = "==2.11.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torch", marker = "sys_platform == 'win32'", specifier = "==2.11.0", index = "https://download.pytorch.org/whl/cu128" },
+    { name = "transformers", specifier = ">=5.14.1" },
+]
 
 [[package]]
 name = "notebook"
