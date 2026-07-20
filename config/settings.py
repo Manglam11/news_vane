@@ -108,6 +108,12 @@ class Settings(BaseSettings):
     distilbert_onnx_file: str = "distilbert.onnx"
     distilbert_onnx_int8_file: str = "distilbert.int8.onnx"
 
+    # The graph carries the weights but not the vocabulary or the label names.
+    # Both live beside the PyTorch model, and both have to travel with the .onnx
+    # file into the container -- together they are under a megabyte.
+    distilbert_tokenizer_file: str = "tokenizer.json"
+    distilbert_config_file: str = "config.json"
+
     @property
     def baseline_model_path(self) -> Path:
         return self.models_dir / self.baseline_model_file
@@ -131,6 +137,14 @@ class Settings(BaseSettings):
     @property
     def distilbert_onnx_int8_path(self) -> Path:
         return self.models_dir / self.distilbert_onnx_int8_file
+
+    @property
+    def distilbert_tokenizer_path(self) -> Path:
+        return self.distilbert_output_dir / self.distilbert_tokenizer_file
+
+    @property
+    def distilbert_config_path(self) -> Path:
+        return self.distilbert_output_dir / self.distilbert_config_file
 
 
 settings = Settings()
