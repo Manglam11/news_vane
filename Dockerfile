@@ -61,6 +61,12 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 USER appuser
 
+# Documentation only -- this is the port I use locally. A managed host injects its own
+# PORT and routes traffic there, which is why the command below reads it at runtime.
 EXPOSE 8000
 
-CMD ["uvicorn", "newsvane.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form, deliberately. The JSON-array form does not run a shell, so it can neither
+# chain the migration nor expand $PORT -- it would pass the literal string through.
+# The image must be able to build its own schema from nothing before it answers a single
+# request, and it must bind wherever its host tells it to.
+CMD alembic upgrade head && uvicorn newsvane.api.main:app --host 0.0.0.0 --port ${PORT:-8000}

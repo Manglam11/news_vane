@@ -40,8 +40,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "alembic upgrade head && uvicorn newsvane.api.main:app --host 0.0.0.0 --port 8000"
+    # No command override. The image's own CMD migrates then serves, and that is the
+    # exact line a managed host will run -- so the local run rehearses the real one
+    # instead of quietly testing a different startup path.
 
 volumes:
   newsvane_pgdata:
-
