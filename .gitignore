@@ -33,5 +33,5 @@ Thumbs.db
 !data/.gitkeep
 
 /models/
-
+/newsvane-model-*.tar.gz
 /mlruns/

@@ -1,6 +1,6 @@
-# I build in two stages. The first stage installs dependencies with uv; the second
-# copies only the finished environment across, so the shipped image carries no
-# build tooling and no cache.
+# I build in two stages. The first stage installs dependencies with uv and pulls the
+# serving weights; the second copies only the finished environment across, so the
+# shipped image carries no build tooling, no curl and no cache.
 
 FROM python:3.12-slim AS builder
 
@@ -14,6 +14,11 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
+# The slim base ships no curl, and the weights live outside the repo. This sits above
+# the source copies on purpose so Docker caches it and does not reinstall on every edit.
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # I copy the lockfile alone first. Docker caches this layer, so dependencies are
 # only reinstalled when the lockfile actually changes -- not on every code edit.
 COPY pyproject.toml uv.lock README.md ./
@@ -25,6 +30,20 @@ COPY config/ ./config/
 COPY alembic.ini ./
 COPY migrations/ ./migrations/
 RUN uv sync --frozen --no-dev
+
+# The serving weights are a build artefact, not source -- git ignores models/, so a
+# clean clone arrives with no brain at all. I publish them as a GitHub Release asset
+# and pull them in here, at BUILD time. Render's free tier spins down when idle, so
+# fetching at START time would repeat this download on every cold start and put a
+# minute in front of the first request.
+#
+# -L is not optional: GitHub answers with a 302 to its CDN, and without it curl saves
+# the redirect page as a zero-byte file and tar fails on garbage.
+ARG MODEL_RELEASE=model-v1
+RUN curl -fsSL -o /tmp/model.tar.gz \
+    "https://github.com/Manglam11/news_vane/releases/download/${MODEL_RELEASE}/newsvane-model-${MODEL_RELEASE#model-}.tar.gz" \
+    && tar -xzf /tmp/model.tar.gz -C /app \
+    && rm /tmp/model.tar.gz
 
 
 FROM python:3.12-slim
