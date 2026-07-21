@@ -62,9 +62,22 @@ class Settings(BaseSettings):
         "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
     )
 
-    scraper_limit: int = 15  # articles per section per run
-    scraper_timeout: float = 20.0  # seconds before I give up on one request
+    # Two limits, not one. This was the whole bug: a single limit of 15 capped how many
+    # links I LOOKED at as well as how many I KEPT, so on the Sports page the live blogs
+    # at the top spent the entire budget before a real story was ever reached. I now
+    # look wide and save narrow.
+    scraper_candidate_limit: int = 120  # how many links I consider
+    scraper_limit: int = 15  # how many I actually save, per section per run
+
+    # A story older than this is not news, it is archive. This is the gate that catches
+    # live blogs by what is actually WRONG with them -- a match thread carries the
+    # kickoff time as its published_time, so it fails on age no matter what its URL is
+    # called. Blocking URL slugs by name loses to whoever names the next one.
+    scraper_max_age_hours: float = 72.0
+
+    scraper_timeout: float = 30.0  # seconds before I give up on one request
     scraper_delay: float = 1.0  # seconds between requests -- I am a guest on their server
+
     # --- ANALYTICS ---
     # How many standard deviations above a topic's own normal counts as a spike.
     # 3.0 is the textbook "rare event" line; I keep it here so tuning the radar's

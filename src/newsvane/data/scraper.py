@@ -3,12 +3,26 @@ every article I find there is Sports. I never trust the site's own section
 meta-tag -- The Hindu calls its Sci/Tech page 'Technology', and my model has
 no such class.
 
+Two rules keep that promise honest, and both exist because the rows proved I
+needed them:
+
+  1. A link only counts if its own path sits UNDER the section path I asked for.
+     The Hindu's section pages carry heavy cross-promotion -- more than half the
+     story links on /business/ pointed at /news/national/ or /sci-tech/. Every
+     one of those was being saved with the wrong label.
+
+  2. A story older than a few days is archive, not news. This is what actually
+     catches live blogs: a match thread carries its kickoff as published_time,
+     so it fails on age whatever its URL happens to be called. Blocking slugs by
+     name loses to whoever invents the next slug.
+
 Fetching and parsing are deliberately separate. Fetching touches the network;
 parsing is pure. Only the pure half can be tested honestly.
 """
 
 import time
-from datetime import datetime
+from datetime import UTC, datetime
+from urllib.parse import urlparse
 
 import httpx
 from config.settings import settings
@@ -18,8 +32,8 @@ from lxml import html
 # one is navigation, not news.
 ARTICLE_HREF = "/article"
 
-# Live-score pages match the article pattern but are scoreboards, not prose.
-# Feeding "Full Time MEX 2 RSA 0" to a text classifier is feeding it noise.
+# A cheap pre-filter, not the real defence. It costs nothing and saves me opening
+# a scoreboard page; rule 2 is what actually holds the line.
 JUNK_TOKENS = ("live-score", "/live/", "live-updates")
 
 
@@ -28,8 +42,15 @@ def _meta(tree: html.HtmlElement, prop: str) -> str | None:
     return values[0].strip() if values else None
 
 
-def find_article_urls(page_html: str, limit: int) -> list[str]:
-    """Pure: given a section listing page, pull out the story links."""
+def section_path(section_url: str) -> str:
+    """The path a story must sit under to earn this section's label."""
+    # Derived from the URL I already ask for. A second settings key would be a
+    # copy of this fact, and copies drift apart.
+    return urlparse(section_url).path
+
+
+def find_article_urls(page_html: str, path_prefix: str, limit: int) -> list[str]:
+    """Pure: given a section listing page, pull out the story links I trust."""
     tree = html.fromstring(page_html)
     urls: list[str] = []
 
@@ -37,6 +58,9 @@ def find_article_urls(page_html: str, limit: int) -> list[str]:
         if ARTICLE_HREF not in href or not href.endswith(".ece"):
             continue
         if any(token in href for token in JUNK_TOKENS):
+            continue
+        # Rule 1. A relative href has no host, so urlparse still gives me the path.
+        if not urlparse(href).path.startswith(path_prefix):
             continue
         # A card links to the same story twice (image + headline). De-dupe by URL.
         if href not in urls:
@@ -60,18 +84,29 @@ def parse_article(page_html: str, topic: str) -> dict | None:
     if not (title and description and published):
         return None
 
+    timestamp = datetime.fromisoformat(published)
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=UTC)
+
     return {
         # AG News trained the model on title + description joined. I serve it the
         # exact same shape, or the model sees a distribution it never learned.
         "text": f"{title}. {description}",
         "topic": topic,
-        "timestamp": datetime.fromisoformat(published),
+        "timestamp": timestamp,
     }
+
+
+def is_fresh(article: dict, now: datetime, max_age_hours: float) -> bool:
+    """Pure: rule 2. Is this story news, or is it archive?"""
+    age_hours = (now - article["timestamp"]).total_seconds() / 3600
+    return age_hours <= max_age_hours
 
 
 def scrape_articles() -> list[dict]:
     """The live half of the DATA contract: [{text, topic, timestamp}, ...]."""
     articles: list[dict] = []
+    now = datetime.now(UTC)
 
     with httpx.Client(
         headers={"User-Agent": settings.scraper_user_agent},
@@ -79,16 +114,43 @@ def scrape_articles() -> list[dict]:
         timeout=settings.scraper_timeout,
     ) as client:
         for topic, section_url in settings.scraper_sections.items():
-            listing = client.get(section_url)
-            listing.raise_for_status()
+            # One slow page must not cost me the sections I have not reached yet.
+            # Before this, a single ReadTimeout ended the entire day's harvest.
+            try:
+                listing = client.get(section_url)
+                listing.raise_for_status()
+            except httpx.HTTPError:
+                continue
 
-            for url in find_article_urls(listing.text, settings.scraper_limit):
-                response = client.get(url)
-                if response.status_code == 200:
-                    article = parse_article(response.text, topic)
-                    if article is not None:
-                        articles.append(article)
-                # I am a guest on someone else's server. One request, one pause.
-                time.sleep(settings.scraper_delay)
+            kept = 0
+            # I look wide and save narrow. These are two different numbers and
+            # collapsing them into one is what starved Sports for six days.
+            for url in find_article_urls(
+                listing.text,
+                section_path(section_url),
+                settings.scraper_candidate_limit,
+            ):
+                if kept >= settings.scraper_limit:
+                    break
+
+                try:
+                    response = client.get(url)
+                except httpx.HTTPError:
+                    continue
+                finally:
+                    # I am a guest on someone else's server. One request, one pause.
+                    time.sleep(settings.scraper_delay)
+
+                if response.status_code != 200:
+                    continue
+
+                article = parse_article(response.text, topic)
+                if article is None:
+                    continue
+                if not is_fresh(article, now, settings.scraper_max_age_hours):
+                    continue
+
+                articles.append(article)
+                kept += 1
 
     return articles
