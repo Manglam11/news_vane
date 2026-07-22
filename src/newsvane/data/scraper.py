@@ -18,9 +18,14 @@ needed them:
 
 Fetching and parsing are deliberately separate. Fetching touches the network;
 parsing is pure. Only the pure half can be tested honestly.
+
+A rule I cannot check is a rule I am only hoping for, so the harvest audits
+itself before anyone stores it -- see audit_harvest at the bottom of this file.
 """
 
 import time
+from collections import Counter
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
@@ -154,3 +159,55 @@ def scrape_articles() -> list[dict]:
                 kept += 1
 
     return articles
+
+
+def harvest_counts(articles: list[dict], sections: Iterable[str]) -> dict[str, int]:
+    """Pure: rows per section, INCLUDING the sections that produced none.
+
+    A total is a number that can hide a zero. `saved 58 new` closed a phase while
+    Sports sat at nothing for six days, so every count I report is broken down by
+    the dimension the failure lives in.
+    """
+    counts = dict.fromkeys(sections, 0)
+    found = Counter(article["topic"] for article in articles)
+    for topic, count in found.items():
+        # An unexpected label is counted rather than dropped -- a breakdown that
+        # silently omits a row is the same disease as a total that hides a zero.
+        counts[topic] = counts.get(topic, 0) + count
+    return counts
+
+
+def audit_harvest(
+    articles: list[dict],
+    sections: Iterable[str],
+    now: datetime,
+    max_age_hours: float,
+) -> tuple[list[str], list[str]]:
+    """Pure: what is wrong with this harvest? Returns (poison, alarms).
+
+    POISON is a row I must never store. A wrong label or a stale timestamp lands
+    in the table permanently and bends every trend and drift number computed after
+    it -- and without a source URL I cannot even find it again to delete it.
+
+    An ALARM is a harvest that is missing, not wrong. Nothing to clean up, but the
+    job must still go red: a section at zero is precisely the failure that ran
+    green every morning for six days.
+    """
+    known = set(sections)
+    poison: list[str] = []
+    alarms: list[str] = []
+
+    for article in articles:
+        topic = article["topic"]
+        if topic not in known:
+            poison.append(f"label '{topic}' is not a class the model can predict")
+        if not is_fresh(article, now, max_age_hours):
+            age_hours = (now - article["timestamp"]).total_seconds() / 3600
+            poison.append(f"{topic}: an article {age_hours:.0f}h old passed the freshness gate")
+
+    counts = harvest_counts(articles, sections)
+    for section in sections:
+        if counts[section] == 0:
+            alarms.append(f"{section}: 0 articles -- this section harvested nothing")
+
+    return poison, alarms
