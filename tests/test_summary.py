@@ -2,7 +2,7 @@
 
 B1-B3 already proved each engine's numbers. This proves only that summarise()
 returns the four frozen keys and routes real data into each one. One seeded
-week feeds all three engines at once; drift stays None until Phase 6.
+week feeds all four engines at once.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -17,20 +17,25 @@ from newsvane.storage import repository
 def seeded_week():
     # World climbs across the week and then spikes on the last day, so trends,
     # distribution and anomalies all have something real to report at once.
+    # Every row also carries the model's answer -- drift reads predicted_label,
+    # so a week seeded without it would leave the fourth engine with nothing.
     days = [datetime(2026, 7, 1, 9, 0, tzinfo=UTC) + timedelta(days=i) for i in range(7)]
     baseline = [2, 3, 2, 3, 2, 3]
 
+    def row(text: str, topic: str, day: datetime) -> dict:
+        return {
+            "text": text,
+            "topic": topic,
+            "timestamp": day,
+            "predicted_label": topic,
+            "predicted_score": 0.9,
+        }
+
     articles = []
     for day, n in zip(days[:-1], baseline, strict=True):
-        articles += [
-            {"text": f"world {day} {i}", "topic": "World", "timestamp": day} for i in range(n)
-        ]
-        articles += [
-            {"text": f"sports {day} {i}", "topic": "Sports", "timestamp": day} for i in range(2)
-        ]
-    articles += [
-        {"text": f"world spike {i}", "topic": "World", "timestamp": days[-1]} for i in range(20)
-    ]
+        articles += [row(f"world {day} {i}", "World", day) for i in range(n)]
+        articles += [row(f"sports {day} {i}", "Sports", day) for i in range(2)]
+    articles += [row(f"world spike {i}", "World", days[-1]) for i in range(20)]
 
     repository.save_articles(articles)
     return days[0], days[-1] + timedelta(days=1)

@@ -133,8 +133,17 @@ class AnomalyOut(BaseModel):
     z_score: float
 
 
+class AgreementOut(BaseModel):
+    # The model's mark on live news: how often its blind answer matched the
+    # section the article actually came from. rate is None only when no row in
+    # the window carried a prediction at all.
+    agreed: int
+    scored: int
+    rate: float | None = None
+
+
 class DriftOut(BaseModel):
-    # How far the live window's topic-mix has drifted from the model's frozen
+    # How far the model's own live output mix has drifted from the frozen
     # training mix. distance is the JS divergence in [0, 1]; is_drifting is that
     # distance crossing the settings line -- the signal the model is going stale.
     distance: float
@@ -142,6 +151,7 @@ class DriftOut(BaseModel):
     is_drifting: bool
     live: dict[str, float]
     reference: dict[str, float]
+    agreement: AgreementOut
 
 
 class PulseResponse(BaseModel):
