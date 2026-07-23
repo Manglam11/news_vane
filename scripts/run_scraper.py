@@ -3,6 +3,10 @@
 It ran green every morning for six days while Sports saved nothing at all, so it
 now has to earn the word "success": it reports per section, it checks the harvest
 against the contract, and it exits non-zero when it cannot defend what it wrote.
+
+It also marks the model against every row it keeps. The section is ground truth,
+the model never sees it, and the two answers land side by side in the same row --
+which is what gives drift something to measure that is not just my own quota.
 """
 
 import sys
@@ -12,6 +16,7 @@ from config.settings import settings
 
 from newsvane.data import get_articles
 from newsvane.data.scraper import audit_harvest, harvest_counts
+from newsvane.models.batch import agreement, classify_articles
 from newsvane.storage.repository import save_articles
 
 
@@ -37,6 +42,18 @@ def main() -> None:
         # missing day is a gap I can simply scrape again tomorrow.
         print("nothing written -- this harvest cannot defend its own labels")
         sys.exit(1)
+
+    # Only rows that survived the poison gate are worth asking about. Classifying
+    # before that check would spend the model on rows I am about to throw away.
+    articles, failures = classify_articles(articles)
+
+    # An unclassified row is MISSING, not WRONG -- and unlike a bad label it stays
+    # findable forever as predicted_label IS NULL. Alarm, therefore, never poison.
+    alarms += failures
+
+    agreed, scored = agreement(articles)
+    if scored:
+        print(f"model agreed with {agreed}/{scored} sections ({agreed / scored:.1%})")
 
     saved = save_articles(articles)
     # The gap between these two numbers is the whole point: on day one they match,

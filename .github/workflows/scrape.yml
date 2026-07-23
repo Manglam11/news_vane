@@ -16,6 +16,10 @@ jobs:
     # It never touches a committed file -- GitHub injects it only at runtime.
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # The same tag the Dockerfile pulls. This IS a copy of a fact and I know it --
+      # the image and the runner share no config layer, so the two live apart. If I
+      # ever cut model-v2, both this line and the Dockerfile's ARG have to move.
+      MODEL_RELEASE: model-v1
 
     steps:
       - name: Check out the repo
@@ -28,6 +32,21 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --frozen
+
+      # The job now marks the model against every row it keeps, so it needs the
+      # serving weights -- and models/ is git-ignored, so a fresh checkout arrives
+      # with no brain at all. Same Release asset the container uses, same -L for
+      # GitHub's 302 to its CDN. onnxruntime and tokenizers are already in the
+      # runtime dependencies; only the weights were missing.
+      - name: Fetch the serving weights
+        run: |
+          curl -fsSL -L -o /tmp/model.tar.gz \
+            "https://github.com/Manglam11/news_vane/releases/download/${MODEL_RELEASE}/newsvane-model-${MODEL_RELEASE#model-}.tar.gz"
+          tar -xzf /tmp/model.tar.gz -C .
+          rm /tmp/model.tar.gz
+          # A download that "succeeded" into a zero-byte file is exactly how the -L
+          # bug hid last time. I look at what actually landed before trusting it.
+          ls -l models/
 
       # The same rule as my container: migrate before I do any work. If I ever add a
       # migration, the scheduled job applies it to the cloud DB before scraping.
