@@ -121,6 +121,46 @@ def test_save_articles_skips_duplicates():
     assert save_articles(batch) == 1
 
 
+def test_save_articles_stores_the_model_answer_and_leaves_it_null_when_absent():
+    """The two prediction columns must survive the round-trip into Postgres.
+
+    The second row here carries the bare DATA contract with no model answer at all
+    -- exactly what the Kaggle source hands over -- and it must land as NULL rather
+    than raise. A column that only works when a key is present would break every
+    caller that predates it.
+    """
+    from datetime import UTC, datetime
+
+    from sqlalchemy import select
+
+    from newsvane.storage import repository
+    from newsvane.storage.models import Article
+
+    published = datetime(2026, 7, 14, 9, 0, tzinfo=UTC)
+    repository.save_articles(
+        [
+            {
+                "text": "The model read this one.",
+                "topic": "World",
+                "timestamp": published,
+                "predicted_label": "Business",
+                "predicted_score": 0.77,
+            },
+            {"text": "Nobody asked about this one.", "topic": "World", "timestamp": published},
+        ]
+    )
+
+    with repository.SessionLocal() as session:
+        rows = session.scalars(select(Article).order_by(Article.id)).all()
+        answered, unanswered = rows[0], rows[1]
+
+    assert answered.predicted_label == "Business"
+    assert answered.predicted_score == pytest.approx(0.77)
+    # NULL is the honest record of a question nobody asked -- not a wrong answer.
+    assert unanswered.predicted_label is None
+    assert unanswered.predicted_score is None
+
+
 def _fake_pulse():
     # A stand-in for summarise()'s four-key shape. I stub it because the maths
     # is already proven in the analytics tests -- here I test only that the
@@ -144,6 +184,7 @@ def _fake_pulse():
             "is_drifting": True,
             "live": {"World": 1.0},
             "reference": {"World": 0.25, "Sports": 0.25, "Business": 0.25, "Sci/Tech": 0.25},
+            "agreement": {"agreed": 3, "scored": 12, "rate": 0.25},
         },
     }
 
@@ -161,6 +202,10 @@ def test_pulse_serves_the_analytics_contract(client, monkeypatch):
     assert body["anomalies"][0]["z_score"] == 4.1
     # The new typed DriftOut must survive the round-trip through the endpoint.
     assert body["drift"]["is_drifting"] is True
+    # The model's live mark travels with it -- a drift number with no exam score
+    # behind it is the old statistic wearing the new name.
+    assert body["drift"]["agreement"]["scored"] == 12
+    assert body["drift"]["agreement"]["rate"] == 0.25
 
 
 def test_pulse_passes_its_window_to_summarise(client, monkeypatch):

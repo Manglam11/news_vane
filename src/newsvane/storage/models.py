@@ -100,6 +100,17 @@ class Article(Base):
     # The section I scraped it from. This IS the label -- free, and true by construction.
     topic: Mapped[str] = mapped_column(String(32), nullable=False)
 
+    # What the model said this article was, asked at harvest time with the section
+    # hidden from it. topic above is ground truth; this is the model's answer to the
+    # same question. Two columns on one row is what turns a scrape into a daily exam.
+    #
+    # Both are nullable on purpose. Every row written before this column existed was
+    # never classified, and there is no honest value to backfill them with -- a guess
+    # made today is not a prediction the model made then. NULL means "never asked",
+    # and ANALYTICS must read it as absence, never as a wrong answer.
+    predicted_label: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    predicted_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     # When the NEWS happened. This is the clock the radar actually reads.
     published_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -127,4 +138,7 @@ class Article(Base):
         # of predictions. Same question, same index.
         Index("ix_articles_published_at", "published_at"),
         Index("ix_articles_topic_published_at", "topic", "published_at"),
+        # Drift now groups this window by the MODEL's answer rather than the
+        # section's. A new question earns its own index, on the same pattern.
+        Index("ix_articles_predicted_label_published_at", "predicted_label", "published_at"),
     )

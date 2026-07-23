@@ -88,6 +88,11 @@ def save_articles(articles: list[dict]) -> int:
     and tell it to ignore any row whose text_hash already exists. A SELECT-then-INSERT
     would race, and a duplicate story is not a harmless duplicate -- it is a fake spike
     in tomorrow's trend line.
+
+    The model's answer is read with .get() rather than [] on purpose: the DATA contract
+    is still {text, topic, timestamp}, and a caller handing me exactly that -- the Kaggle
+    source, a test fixture -- must keep working untouched. An absent key becomes NULL,
+    which is the honest record of a question nobody asked.
     """
     if not articles:
         return 0
@@ -97,6 +102,8 @@ def save_articles(articles: list[dict]) -> int:
             "text": article["text"],
             "topic": article["topic"],
             "published_at": article["timestamp"],
+            "predicted_label": article.get("predicted_label"),
+            "predicted_score": article.get("predicted_score"),
             "text_hash": hashlib.sha256(article["text"].encode("utf-8")).hexdigest(),
         }
         for article in articles
@@ -137,3 +144,49 @@ def count_by_day(start: datetime, end: datetime) -> list[dict]:
         return [
             {"day": row.day, "topic": row.topic, "count": row.n} for row in session.execute(stmt)
         ]
+
+
+def predicted_mix_counts(start: datetime, end: datetime) -> dict[str, int]:
+    """Count articles per MODEL-PREDICTED label inside a half-open window.
+
+    count_by_day above groups by the section I scraped from. This groups by what
+    the model said instead, which is the whole difference between measuring my own
+    scraping quota and measuring the model. Rows the model never answered are
+    excluded outright -- NULL means the question was never asked, and an unasked
+    question must not be counted as a vote for any class.
+    """
+    with SessionLocal() as session:
+        stmt = (
+            select(Article.predicted_label, func.count().label("n"))
+            .where(
+                Article.published_at >= start,
+                Article.published_at < end,
+                Article.predicted_label.is_not(None),
+            )
+            .group_by(Article.predicted_label)
+        )
+        return {row.predicted_label: row.n for row in session.execute(stmt)}
+
+
+def agreement_counts(start: datetime, end: datetime) -> tuple[int, int]:
+    """Return (agreed, scored) for classified articles in a half-open window.
+
+    The section is ground truth and the model never saw it, so this is a real
+    exam score on live news -- free ground truth, marked daily. I let Postgres
+    do the comparison with a FILTER clause rather than dragging rows into Python
+    to compare them one by one.
+
+    scored counts only rows carrying a prediction, so a model failure shows up as
+    a smaller exam, never as a lower mark.
+    """
+    with SessionLocal() as session:
+        stmt = select(
+            func.count().label("scored"),
+            func.count().filter(Article.predicted_label == Article.topic).label("agreed"),
+        ).where(
+            Article.published_at >= start,
+            Article.published_at < end,
+            Article.predicted_label.is_not(None),
+        )
+        row = session.execute(stmt).one()
+        return row.agreed, row.scored
