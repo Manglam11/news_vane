@@ -1,0 +1,12 @@
+# Streamlit Community Cloud does not read uv's pyproject.toml -- it assumes any
+# pyproject.toml it finds is Poetry's format, and ours is not. Cloud looks for a
+# dependency file beside the entrypoint BEFORE it looks at the repo root, so this
+# file is what it reads, and the root pyproject.toml is never misread as Poetry.
+#
+# This is a KNOWING COPY of the dashboard dependency group, in the same way the
+# scrape workflow copies the model release tag: the two hosts share no config
+# layer. Change the group in pyproject.toml and this file changes with it.
+httpx>=0.28.1
+pandas>=2.2,<3
+plotly>=6.9.0
+streamlit>=1.60.0

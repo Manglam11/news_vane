@@ -9,11 +9,22 @@ This file is the running order, nothing more. One fetch, then each panel is
 handed the slice of the reading it owns.
 """
 
-import httpx
-import streamlit as st
+import sys
+from pathlib import Path
 
-from newsvane.dashboard.client import API_URL, fetch_pulse
-from newsvane.dashboard.panels import alarms, mix, momentum
+# The deploy host runs this file as a loose script and never installs the package,
+# so src/ is not on the path and `import newsvane...` would fail there while
+# working perfectly here. The entrypoint is the one honest place to fix that: it
+# is the only file that knows where it sits on disk. Nothing below it needs this.
+SRC = Path(__file__).resolve().parents[2]
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+import httpx  # noqa: E402
+import streamlit as st  # noqa: E402
+
+from newsvane.dashboard.client import API_URL, fetch_pulse  # noqa: E402
+from newsvane.dashboard.panels import alarms, mix, momentum  # noqa: E402
 
 st.set_page_config(page_title="NewsVane", page_icon="📡", layout="wide")
 
