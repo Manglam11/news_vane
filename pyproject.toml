@@ -56,6 +56,10 @@ dev = [
     "onnxscript>=0.7.1",
     "pytest>=9.1.1",
 ]
+dashboard = [
+    "plotly>=6.9.0",
+    "streamlit>=1.60.0",
+]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
