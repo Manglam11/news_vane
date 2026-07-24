@@ -9,11 +9,13 @@ would turn the whole suite red on a machine that is otherwise perfectly healthy.
 import pandas as pd
 
 from newsvane.dashboard.shaping import (
+    MIN_FOR_MOOD,
     MIN_SCORED,
     anomaly_frame,
     drift_verdict,
     mix_frame,
     momentum_frame,
+    mood_frame,
 )
 
 
@@ -153,3 +155,81 @@ def test_anomalies_are_ordered_loudest_first():
     frame = anomaly_frame(anomalies)
 
     assert list(frame["topic"]) == ["Sports", "Business", "World"]
+
+
+def test_mood_drops_a_day_it_never_read():
+    # The keystone, and it is the exact OPPOSITE of the momentum rule above. A
+    # missing count is a true zero; a missing mood is not. Every row older than
+    # the sentiment column carries a NULL here, and filling those with 0.0 would
+    # draw a flat calm line across the whole history of the project.
+    trends = {
+        "World": [
+            {"day": "2026-07-22T00:00:00Z", "count": 13, "mood": None},
+            {"day": "2026-07-23T00:00:00Z", "count": 6, "mood": -0.57},
+        ]
+    }
+
+    frame = mood_frame(trends)
+
+    assert len(frame) == 1
+    assert frame["day"].iloc[0] == pd.Timestamp("2026-07-23", tz="UTC")
+
+
+def test_mood_keeps_a_genuinely_neutral_day():
+    # 0.0 is a real reading -- a day of flat, factual coverage -- and it is falsy.
+    # Any rewrite of the filter from "is not None" to a plain truth test throws
+    # this day away, so the difference between "calm" and "never read" gets one
+    # test of its own.
+    trends = {"Sci/Tech": [{"day": "2026-07-24T00:00:00Z", "count": 9, "mood": 0.0}]}
+
+    frame = mood_frame(trends)
+
+    assert len(frame) == 1
+    assert frame["mood"].iloc[0] == 0.0
+
+
+def test_mood_leaves_a_break_rather_than_bridging_a_silent_day():
+    # Momentum reindexes onto one shared axis; mood must not. A line drawn
+    # straight from Wednesday to Friday claims a Thursday reading that was never
+    # taken, and a chart is believed faster than a table.
+    trends = {
+        "Sci/Tech": [
+            {"day": "2026-07-22T00:00:00Z", "count": 9, "mood": 0.21},
+            {"day": "2026-07-24T00:00:00Z", "count": 9, "mood": 0.18},
+        ]
+    }
+
+    frame = mood_frame(trends)
+
+    assert len(frame) == 2
+    assert pd.Timestamp("2026-07-23", tz="UTC") not in set(frame["day"])
+
+
+def test_mood_flags_a_reading_too_thin_to_be_an_average():
+    # The boundary is INCLUSIVE: exactly MIN_FOR_MOOD articles is trusted, one
+    # fewer is flagged. Sports genuinely posted a single article on Jul 24 and
+    # its +0.42 is that one story's score, not the day's mood.
+    trends = {
+        "Sports": [
+            {"day": "2026-07-23T00:00:00Z", "count": MIN_FOR_MOOD - 1, "mood": 0.42},
+            {"day": "2026-07-24T00:00:00Z", "count": MIN_FOR_MOOD, "mood": 0.35},
+        ]
+    }
+
+    thin = mood_frame(trends).set_index("day")["thin"]
+
+    assert thin[pd.Timestamp("2026-07-23", tz="UTC")]
+    assert not thin[pd.Timestamp("2026-07-24", tz="UTC")]
+
+
+def test_mood_survives_an_api_that_has_no_mood_yet():
+    # This box deploys to a different host than the API, so it can run one
+    # version ahead of the service it reads. An older API sends this atom with no
+    # mood key at all, and a KeyError there is a dead dashboard on every deploy.
+    trends = {"World": [{"day": "2026-07-22T00:00:00Z", "count": 13}]}
+
+    assert mood_frame(trends).empty
+
+
+def test_mood_survives_an_empty_window():
+    assert mood_frame({}).empty

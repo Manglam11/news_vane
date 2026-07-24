@@ -24,7 +24,7 @@ import httpx  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from newsvane.dashboard.client import API_URL, fetch_pulse  # noqa: E402
-from newsvane.dashboard.panels import alarms, mix, momentum  # noqa: E402
+from newsvane.dashboard.panels import alarms, mix, momentum, mood  # noqa: E402
 
 st.set_page_config(page_title="NewsVane", page_icon="📡", layout="wide")
 
@@ -42,4 +42,5 @@ except httpx.HTTPError as error:
 
 alarms.render(pulse)
 momentum.render(pulse["trends"])
+mood.render(pulse["trends"])
 mix.render(pulse["distribution"])

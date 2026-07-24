@@ -14,6 +14,11 @@ import pandas as pd
 # a verdict is the most confident kind of wrong.
 MIN_SCORED = 30
 
+# And below this many articles a day's mood is not an average, it is one story's
+# score wearing a daily costume. I still draw the point -- hiding it would be its
+# own lie -- but it carries a flag so the panel can say the reading is thin.
+MIN_FOR_MOOD = 3
+
 
 def momentum_frame(trends: dict) -> pd.DataFrame:
     """The ragged per-topic series, lined up on one shared daily axis.
@@ -41,6 +46,53 @@ def momentum_frame(trends: dict) -> pd.DataFrame:
     wide.index.name = "day"
 
     return wide.reset_index().melt(id_vars="day", var_name="topic", value_name="count")
+
+
+def mood_frame(trends: dict) -> pd.DataFrame:
+    """The per-topic mood series, with the number of articles behind each reading.
+
+    Two rules here are the exact opposite of the ones above, and the difference is
+    the whole point of this function.
+
+    A day with no mood is DROPPED, never filled. Momentum can fill a gap with zero
+    because zero articles is a true reading of volume. Mood cannot: 0.0 is what
+    genuinely neutral news scores, so a gap filled with zero turns "I never read
+    these articles" into "the news was calm that day" -- and every row older than
+    the sentiment column carries exactly that NULL.
+
+    And a day is kept ragged rather than reindexed onto a shared axis, so a topic
+    that has no reading for Tuesday leaves a real break in its line instead of a
+    line drawn straight through a day nobody measured.
+
+    The mood key is read with .get(), not [], for the same reason save_articles
+    reads its new keys that way. This box ships to a different host than the API,
+    so it can be running one version ahead of the service it reads. An older API
+    sends this atom with no mood key at all, and a panel that raises on that turns
+    a routine deploy lag into a dead dashboard.
+    """
+    rows = [
+        {
+            "day": point["day"],
+            "topic": topic,
+            "mood": point.get("mood"),
+            "count": point["count"],
+        }
+        for topic, series in trends.items()
+        for point in series
+        if point.get("mood") is not None
+    ]
+    if not rows:
+        return pd.DataFrame()
+
+    frame = pd.DataFrame(rows)
+    frame["day"] = pd.to_datetime(frame["day"]).dt.normalize()
+    # The denominator travels with the reading, all the way to the chart. A mood
+    # of +0.42 off one article and one off fifteen are not the same fact, and the
+    # only place that difference can be seen is beside the number itself.
+    frame["thin"] = frame["count"] < MIN_FOR_MOOD
+
+    frame = frame.sort_values(["topic", "day"]).reset_index(drop=True)
+    return frame[["day", "topic", "mood", "count", "thin"]]
 
 
 def mix_frame(distribution: dict) -> pd.DataFrame:
