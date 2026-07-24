@@ -101,6 +101,18 @@ class Settings(BaseSettings):
     # fresh radar -- like the z-threshold, tuning it is a config edit, never a code edit.
     drift_threshold: float = 0.1
 
+    # --- SENTIMENT (the MODEL box's second engine) ---
+    # VADER hands back a compound score in [-1, 1]. These two lines are the poles:
+    # anything strictly between them is neutral. Both boundaries count TOWARDS the
+    # pole, so a compound of exactly 0.05 reads positive -- VADER's own published
+    # convention, written down here so it can never drift by accident.
+    #
+    # Widen the gap and only strong opinions register; narrow it and every article
+    # takes a side. Like every other threshold in this file, tuning the radar is a
+    # config edit, never a code edit.
+    sentiment_positive_threshold: float = 0.05
+    sentiment_negative_threshold: float = -0.05
+
     distilbert_checkpoint: str = "distilbert-base-uncased"
     distilbert_max_length: int = 128
 
