@@ -24,6 +24,7 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "tokenizers>=0.22.2",
     "uvicorn[standard]>=0.51.0",
+    "vadersentiment>=3.3.2",
 ]
 
 
