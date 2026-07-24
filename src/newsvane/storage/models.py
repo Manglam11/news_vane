@@ -111,6 +111,17 @@ class Article(Base):
     predicted_label: Mapped[str | None] = mapped_column(String(32), nullable=True)
     predicted_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # How the article READS -- the mood engine's answer. Deliberately not called
+    # predicted_sentiment: that prefix exists to separate the model's guess from the
+    # ground-truth topic beside it, and there is no ground-truth mood column here to
+    # separate this from. Nothing on a news page states how a story feels.
+    #
+    # The word is what a human reads; the compound score in [-1, 1] is what a daily
+    # average is taken of. You cannot take the mean of "positive", so I store both.
+    # Nullable for the same reason as the two columns above, and never backfilled.
+    sentiment: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    sentiment_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     # When the NEWS happened. This is the clock the radar actually reads.
     published_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -141,4 +152,8 @@ class Article(Base):
         # Drift now groups this window by the MODEL's answer rather than the
         # section's. A new question earns its own index, on the same pattern.
         Index("ix_articles_predicted_label_published_at", "predicted_label", "published_at"),
+        # The mood series earns NO index of its own. It asks the same question the
+        # topic index already answers -- this topic, this window -- and only averages
+        # a different column once the rows are found. An index that duplicates an
+        # existing one costs every write and speeds up nothing.
     )

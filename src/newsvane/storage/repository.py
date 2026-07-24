@@ -89,10 +89,10 @@ def save_articles(articles: list[dict]) -> int:
     would race, and a duplicate story is not a harmless duplicate -- it is a fake spike
     in tomorrow's trend line.
 
-    The model's answer is read with .get() rather than [] on purpose: the DATA contract
-    is still {text, topic, timestamp}, and a caller handing me exactly that -- the Kaggle
-    source, a test fixture -- must keep working untouched. An absent key becomes NULL,
-    which is the honest record of a question nobody asked.
+    Every model-written key is read with .get() rather than [] on purpose: the DATA
+    contract is still {text, topic, timestamp}, and a caller handing me exactly that --
+    the Kaggle source, a test fixture -- must keep working untouched. An absent key
+    becomes NULL, which is the honest record of a question nobody asked.
     """
     if not articles:
         return 0
@@ -104,6 +104,8 @@ def save_articles(articles: list[dict]) -> int:
             "published_at": article["timestamp"],
             "predicted_label": article.get("predicted_label"),
             "predicted_score": article.get("predicted_score"),
+            "sentiment": article.get("sentiment"),
+            "sentiment_score": article.get("sentiment_score"),
             "text_hash": hashlib.sha256(article["text"].encode("utf-8")).hexdigest(),
         }
         for article in articles
@@ -143,6 +145,47 @@ def count_by_day(start: datetime, end: datetime) -> list[dict]:
         )
         return [
             {"day": row.day, "topic": row.topic, "count": row.n} for row in session.execute(stmt)
+        ]
+
+
+def mood_by_day(start: datetime, end: datetime) -> list[dict]:
+    """Average sentiment per topic per day inside the same half-open window.
+
+    Deliberately a separate query rather than a second column on count_by_day.
+    That function feeds three engines -- trends, anomalies and distributions --
+    and reshaping it to serve one of them would drag the other two into a change
+    neither asked for. Same grouping, same index, one focused question each.
+
+    Rows with no sentiment_score are excluded outright, so a day that predates
+    the mood engine returns no row here at all rather than a misleading zero.
+    NULL means "never read", which is a different fact from "read as neutral" --
+    and a neutral article scores an honest 0.0, so the two would be
+    indistinguishable if I let NULLs into the average.
+
+    The mean is taken over the compound scores, so a day of mostly-neutral news
+    lands near zero. That is the correct reading, not a flat line: most news
+    genuinely is neutral, and a mood series that never sits near zero would be
+    an instrument with its needle stuck.
+    """
+    day = func.date_trunc("day", Article.published_at)
+    with SessionLocal() as session:
+        stmt = (
+            select(
+                day.label("day"),
+                Article.topic,
+                func.avg(Article.sentiment_score).label("mood"),
+            )
+            .where(
+                Article.published_at >= start,
+                Article.published_at < end,
+                Article.sentiment_score.is_not(None),
+            )
+            .group_by(day, Article.topic)
+            .order_by(day, Article.topic)
+        )
+        return [
+            {"day": row.day, "topic": row.topic, "mood": float(row.mood)}
+            for row in session.execute(stmt)
         ]
 
 
