@@ -110,9 +110,13 @@ def read_predictions(
 
 
 class TrendPoint(BaseModel):
-    # One topic's article-count on one day -- the atom of a momentum series.
+    # One topic's article-count on one day, and how that day's articles read --
+    # the atom of a momentum series. mood is None when no article in the bucket
+    # carried a reading, which is absence, not neutrality: a genuinely calm day
+    # scores 0.0, and the two must never look the same to a caller.
     day: datetime
     count: int
+    mood: float | None = None
 
 
 class DistributionOut(BaseModel):
